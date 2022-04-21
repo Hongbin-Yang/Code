@@ -1,0 +1,32 @@
+install.packages("TSA")
+library(TSA)
+drunk=read.csv("Drunkintakes.csv")
+attach(drunk)
+plot(drunk$Intakes,type='o')
+BoxCox.ar(drunk$Intakes)
+
+plot(log(Intakes),type='o')
+plot(diff(log(Intakes)),type='o')
+acf (drunk$login,ci.type='ma')
+acf(diff(log(Intakes)),ci.type='ma')
+pacf(diff(log(Intakes)))
+
+fit=arima(log(Intakes),order=c(0,1,2))
+fit
+fit=arima(log(Intakes),order=c(0,1,1))
+fit
+par(mfrow = c(2,2))
+plot(rstandard(fit),ylab='Standardized Residuals',type='o')
+hist(rstandard(fit))
+qqnorm(residuals(fit))
+qqline(residuals(fit))
+acf(rstandard(fit))
+Box.test(residuals(fit),lag=10,type="Ljung",fitdf=1)
+fit=arima(log(Intakes),order=c(0,1,4))
+fit
+plot(rstandard(fit),ylab='Standardized Residuals',type='o')
+hist(rstandard(fit))
+qqnorm(residuals(fit))
+qqline(residuals(fit))
+acf(rstandard(fit))
+Box.test(residuals(fit),lag=10,type="Ljung",fitdf=4)

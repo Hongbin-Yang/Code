@@ -1,0 +1,116 @@
+---
+title: "a11"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+bf=read.csv("bodyfat.csv")
+set.seed(1)
+train=sample(250,150)
+test=(c(1:250)[‐train])
+attach(bf)
+library(leaps)
+fit1.full=regsubsets(Pct.BF~.,bf, nvmax = 13)
+summary(fit1.full)
+reg.summary=summary(fit1.full)
+reg.summary$adjr2
+reg.summary$cp
+reg.summary$bic
+plot(reg.summary$adjr2,xlab="Number of Variables", ylab="Adjusted RSq", type = "l")
+plot(reg.summary$cp,xlab="Number of Variables", ylab=" Cp", type = "l")
+plot(reg.summary$bic,xlab="Number of Variables", ylab=" BIC", type = "l")
+which.max(reg.summary$adjr2)
+which.min(reg.summary$cp)
+which.min(reg.summary$bic)
+
+coef(fit1.full,10)
+coef(fit1.full,7)
+coef(fit1.full,3)
+
+lm<-lm(Pct.BF~ Age+Height+Neck+Chest+Abdomen+Hip+Thigh+Bicep+Forearm+Wrist,data=bf[train,] )
+summary(lm)
+lm1<-lm(Pct.BF~ Age+Height+Neck+Chest+Abdomen+Forearm+Wrist,data=bf[train,] )
+summary(lm1)
+lm2<-lm(Pct.BF~ Weight+Abdomen+Wrist,data=bf[train,] )
+summary(lm2)
+
+lm3<-lm(Pct.BF~Abdomen+Wrist,data=bf[train,] )
+summary(lm3)
+
+plot(lm3$res~lm3$fitted)
+hist(lm3$res)
+qqnorm(lm3$res)
+shapiro.test(lm3$res)
+```
+
+```{r}
+fit1.for=regsubsets(Pct.BF~.,bf, nvmax = 13,method = "forward")
+summary(fit1.for)
+reg.summary=summary(fit1.for)
+reg.summary$adjr2
+reg.summary$cp
+reg.summary$bic
+plot(reg.summary$adjr2,xlab="Number of Variables", ylab="Adjusted RSq", type = "l")
+plot(reg.summary$cp,xlab="Number of Variables", ylab=" Cp", type = "l")
+plot(reg.summary$bic,xlab="Number of Variables", ylab=" BIC", type = "l")
+which.max(reg.summary$adjr2)
+which.min(reg.summary$cp)
+which.min(reg.summary$bic)
+
+coef(fit1.for,8)
+coef(fit1.for,6)
+coef(fit1.for,3)
+
+lm<-lm(Pct.BF~ Age+Weight+Neck+Abdomen+Thigh+Bicep+Forearm+Wrist,data=bf[train,] )
+summary(lm)
+lm1<-lm(Pct.BF~ Age+Weight+Abdomen+Thigh+Bicep+Wrist,data=bf[train,] )
+summary(lm1)
+lm2<-lm(Pct.BF~ Weight+Abdomen+Wrist,data=bf[train,] )
+summary(lm2)
+lm3<-lm(Pct.BF~ Age+Abdomen+Wrist,data=bf[train,] )
+summary(lm3)
+
+plot(lm3$res~lm3$fitted)
+hist(lm3$res)
+qqnorm(lm3$res)
+shapiro.test(lm3$res)
+```
+
+```{r}
+fit1.bac=regsubsets(Pct.BF~.,bf, nvmax = 13,method = "backward")
+summary(fit1.bac)
+reg.summary=summary(fit1.bac)
+reg.summary$adjr2
+reg.summary$cp
+reg.summary$bic
+plot(reg.summary$adjr2,xlab="Number of Variables", ylab="Adjusted RSq", type = "l")
+plot(reg.summary$cp,xlab="Number of Variables", ylab=" Cp", type = "l")
+plot(reg.summary$bic,xlab="Number of Variables", ylab=" BIC", type = "l")
+which.max(reg.summary$adjr2)
+which.min(reg.summary$cp)
+which.min(reg.summary$bic)
+
+coef(fit1.bac,10)
+coef(fit1.bac,6)
+coef(fit1.bac,4)
+
+lm<-lm(Pct.BF~ Age+Height+Neck+Chest+Abdomen++Hip+Thigh+Bicep+Forearm+Wrist,data=bf[train,] )
+summary(lm)
+lm1<-lm(Pct.BF~ Age+Height+Neck+Abdomen+Forearm+Wrist,data=bf[train,] )
+summary(lm1)
+lm2<-lm(Pct.BF~ Age+Height+Abdomen+Wrist,data=bf[train,] )
+summary(lm2)
+
+lm3<-lm(Pct.BF~ Height+Abdomen+Wrist,data=bf[train,] )
+summary(lm3)
+
+plot(lm3$res~lm3$fitted)
+hist(lm3$res)
+qqnorm(lm3$res)
+shapiro.test(lm3$res)
+```
+

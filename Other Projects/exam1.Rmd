@@ -1,0 +1,169 @@
+---
+title: "exam"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+car<-read.csv("carprice.csv ")
+attach(car)
+library(leaps)
+set.seed(18)
+folds=sample(rep(1:10,length=nrow(car)))
+predict.regsubsets=function(object,newdata,id,...){
+  form=as.formula(object$call[[2]])
+  mat=model.matrix(form,newdata)
+  coefi=coef(object,id=id)
+  mat[,names(coefi)]%*%coefi
+}
+cv.errors=matrix(NA,10,13)
+for(k in 1:10){
+  best.fit=regsubsets(price~wheelbase+carlength+carwidth+carheight+curbweight+enginesize+boreratio+stroke+compressionratio+horsepower+peakrpm+citympg+highwaympg,data=car[folds!=k,],nvmax=13)
+  for(i in 1:13){
+    pred=predict(best.fit,car[folds==k,],id=i)
+    cv.errors[k,i]=mean( (car$price[folds==k]-pred)^2)
+  }
+}
+rmse.cv=sqrt(apply(cv.errors,2,mean))
+plot(rmse.cv,pch=19,type="b")
+rmse.cv
+fit1.full=regsubsets(price~wheelbase+carlength+carwidth+carheight+curbweight+enginesize+boreratio+stroke+compressionratio+horsepower+peakrpm+citympg+highwaympg,data=car, nvmax = 13)
+coef(fit1.full,6)
+fit=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm,data = car)
+summary(fit)
+fit1=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+symboling,data = car)
+anova(fit,fit1)
+fit1=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+fueltype,data = car)
+anova(fit,fit1)
+fit1=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+doornumber,data = car)
+anova(fit,fit1)
+fit1=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+cylindernumber,data = car)
+anova(fit,fit1)
+
+lm<-lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+cylindernumber,data = car,na.action=na.exclude)
+summary(lm)
+
+plot(lm$res~lm$fitted)
+hist(lm$res)
+qqnorm(lm$res)
+shapiro.test(lm$res)
+library(MASS)
+car$stres=stdres(lm)
+subset(car,car$stres< -3)
+subset(car,car$stres > 3)
+car1=subset(car,abs(car$stres) < 3)
+lm2=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+cylindernumber,data = car1,na.action=na.exclude)
+summary(lm2)
+plot(lm2$res~lm2$fitted)
+hist(lm2$res)
+qqnorm(lm2$res)
+shapiro.test(lm2$res)
+
+car1$stres=stdres(lm2)
+subset(car1,car1$stres< -3)
+subset(car1,car1$stres > 3)
+car2=subset(car1,abs(car1$stres) < 3)
+lm3=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm+cylindernumber,data = car2,na.action=na.exclude)
+summary(lm3)
+plot(lm3$res~lm3$fitted)
+hist(lm3$res)
+qqnorm(lm3$res)
+shapiro.test(lm3$res)
+
+car2$stres=stdres(lm3)
+subset(car2,car2$stres< -3)
+subset(car2,car2$stres > 3)
+
+lm4=lm(price~carwidth+enginesize+stroke+compressionratio+horsepower+peakrpm,data = car2,na.action=na.exclude)
+summary(lm4)
+plot(lm4$res~lm4$fitted)
+hist(lm4$res)
+qqnorm(lm4$res)
+shapiro.test(lm4$res)
+```
+
+```{r}
+hp=read.csv("housedata.csv")
+set.seed(123)
+train=sample(21613,11613)
+test=(c(1:21613)[-train])
+hptrain=hp[train,]
+hptest=hp[test,]
+
+attach(hptrain)
+
+library(leaps)
+
+lm<-lm(price~bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_above+sqft_basement+sqft_living15+sqft_lot15+yr_lastmodified,data = hptrain)
+summary(lm)
+
+lm1<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_basement+sqft_living15+sqft_lot15+yr_lastmodified,data = hptrain)
+summary(lm1)
+
+lm2<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified,data = hptrain)
+summary(lm2)
+
+
+lm3<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront,data = hptrain)
+anova(lm3,lm2)
+
+
+
+lm3<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+view,data = hptrain)
+anova(lm3,lm2)
+
+lm3<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+condition,data = hptrain)
+anova(lm3,lm2)
+lm3<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+grade,data = hptrain)
+anova(lm3,lm2)
+
+lm4<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront+grade,data = hptrain)
+anova(lm4,lm3)
+
+lm5<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront+grade+view,data = hptrain)
+anova(lm5,lm4)
+
+lm6<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront+grade+view+condition,data = hptrain)
+anova(lm6,lm5)
+
+
+
+
+lm7<-lm(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront+grade+view+condition,data = hptest)
+summary(lm7)
+
+plot(lm7$res~lm7$fitted)
+hist(lm7$res)
+qqnorm(lm7$res)
+
+
+boxcox(price~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront+grade+view+condition,data = hptest)
+lm8<-lm(log(price)~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+sqft_lot15+yr_lastmodified+waterfront+grade+view+condition,data = hptest)
+summary(lm8)
+
+plot(log(price)~sqft_lot15)
+plot(log(price)~log(sqft_lot15))
+
+lm9<-lm(log(price)~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+log(sqft_lot15)+yr_lastmodified+waterfront+grade+view+condition,data = hptest)
+summary(lm9)
+
+plot(lm9$res~lm9$fitted)
+hist(lm9$res)
+qqnorm(lm9$res)
+
+lm10<-lm(log(price)~bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_living15+log(sqft_lot15)+yr_lastmodified+waterfront+grade+view+condition,data = hp)
+summary(lm10)
+
+plot(lm10$res~lm10$fitted)
+hist(lm10$res)
+qqnorm(lm10$res)
+
+newdata=read.csv("housedatanew.csv")
+pred=predict(lm10,newdata=newdata,interval=c("prediction"))
+pred
+exp(pred)
+```
+

@@ -1,0 +1,129 @@
+---
+title: "Midterm Exam"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(glmnet)
+library(foreach)
+library(doParallel)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+```
+
+##Q1.Your first step will be to read the data in R and randomly divide the data into two
+##equal parts wherein each part holds n = 10000 records. Call the two parts training
+##and holdout.
+```{r}
+Complain<- read.csv("complaints.csv")
+set.seed(1)
+#A index to split the dataset into 50%-50%
+index<-sample(nrow(Complain),nrow(Complain)*.5)
+traning<- Complain[index,]
+holdout<- Complain[-index,]
+```
+##Q2.We Will be using split-and-Conquer For variable selection
+```{r}
+#Creating design martix x and response variable y
+x = as.matrix(traning[,-1])
+y = as.matrix(traning[,1])
+#Running Lasso on the traning dataset
+#Because our response variable is comp which is a count. 
+#Therefore is best to use Poisson family and type.measure as deviance
+ptm <- proc.time()
+cvfit = cv.glmnet(x, y, family = "poisson",
+type.measure = "deviance")
+t.lasso = proc.time() - ptm
+plot(cvfit)
+##Now we want to we want to implement this algorithm with K = 10 and w = K/2
+n = nrow(traning)
+K= 10
+w = ceiling(K/2)
+set.seed(1)
+idx_mat = matrix(sample(1:n,n,replace=F),n/K,K)
+cl <- makeCluster(6)
+registerDoParallel(cl)
+ptm <- proc.time()
+#Parallel loop for K split, We use the same method above to run a Lasso with Possion and Deviance
+result<- foreach(i = 1:K,.packages="glmnet")%dopar%{
+  xx = x[idx_mat[,i],]
+  yy = y[idx_mat[,i]]
+  set.seed(i)
+  cvfit.K = cv.glmnet(xx, yy, family = "poisson",
+                      type.measure = "deviance")
+  return(as.matrix(coef(cvfit.K, s = "lambda.min")))
+}
+#Creating the vector of majority vote
+coef_mat =matrix(unlist(result),K,byrow = T)
+colnames(coef_mat) = rownames(result[1][[1]])
+vote_mat = sapply(1:1001,function(i) sum(1*(coef_mat[,i]!=0)))
+t.splitnconquer = proc.time() - ptm
+stopCluster(cl)
+registerDoSEQ()
+```
+##Q3.From part (2) above, what variables get selected using the majority voting scheme?
+##Provide a graphical representation of the results of the majority voting scheme as was
+##done in the lecture.
+```{r}
+vote_mat_plot = data.frame('coef'=colnames(coef_mat),'vote'=vote_mat)
+vote_mat_plot = vote_mat_plot[vote_mat_plot[,2]>=2,]
+vote_mat_plot %>%
+mutate(coef = fct_reorder(coef, vote)) %>%
+ggplot( aes(x=coef, y=vote)) +
+geom_bar(stat="identity", fill="red", alpha=.8, width=.6) +
+coord_flip()+xlab("Predictors") + scale_y_discrete(limits=factor(1:10))+ylab("Votes")
+```
+
+##Q4.Now we will be using the variable we selected above to test our holdout dataset
+```{r}
+model<-glm(comp~rating+exret+exdowntime,family = poisson(),data = holdout)
+summary(model)
+```
+
+##Q5. Using BLB method
+```{r}
+#setting up a BLB parameter that is provided by the question
+n = nrow(holdout)
+gam = 0.6
+b=n^gam
+s = 5
+r = 100
+#Make a cluster
+cl <- makeCluster(6)
+registerDoParallel(cl)
+#Parallel Loop
+ptm <- proc.time()
+result<- foreach(i = 1:s)%dopar%{
+  #Sampling the data set without replacement
+  set.seed(i)
+  idx = sample(1:n,b,replace = FALSE)
+  dd = holdout[idx,]
+  #After creating sub sample run a bootstrap within each.
+  beta_hat = matrix(0,r,1)
+  for(k in 1:r){
+    set.seed(k)
+    idy = sample(1:b,n,replace = TRUE)
+    temp = dd[idy,]
+    #Use the variable we selected during question 2
+    fit<-glm(comp~rating+exret+exdowntime,family = poisson(),data = temp)
+    beta_hat[k]=coef(fit)[2]/coef(fit)[3]
+  }
+  #Standard error and 95% CI
+  blb_sd = sd(beta_hat)
+  blb_ci = c(quantile(beta_hat,0.025),
+             quantile(beta_hat,0.975))
+  return(list("sd"=blb_sd,"ci"=blb_ci))
+}
+proc.time() - ptm
+
+stopCluster(cl)
+registerDoSEQ()
+#SD
+mean(sapply(1:s, function(i) result[[i]]$sd))
+#CI
+rowMeans(sapply(1:s, function(i) result[[i]]$ci))
+
+```
+
