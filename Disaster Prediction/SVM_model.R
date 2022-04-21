@@ -13,13 +13,9 @@ svm.model <- svm(formula = target ~ .,
 
 svm.model
 summary(svm.model)
-# Predicting the Test set results
 svm_pred <-  predict(svm.model, newdata = test[,-291])
-
-# Making the Confusion Matrix
 cm2 <- table(test$target , svm_pred)
 cm2
-
 error_metric <- function(cm2){
   TN = cm2[1,1]
   TP = cm2[2,2]
@@ -36,7 +32,6 @@ error_metric <- function(cm2){
   print(paste("SVM F_score",round(F_score,2)))
   print(paste("SVM CER",round(CER,2)))
 }
-
 
 SVM_results <- error_metric(cm2)
 SVM_results
